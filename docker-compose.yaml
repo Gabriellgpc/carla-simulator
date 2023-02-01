@@ -1,0 +1,45 @@
+# @Author: Condados
+# @Date:   2022-11-12 12:13:44
+# @Last Modified by:   Condados
+# @Last Modified time: 2022-11-12 18:38:12
+version: "3.9"  # optional since v1.27.0
+
+# docker-compose reference: https://docs.docker.com/compose/compose-file/compose-file-v3
+
+# To run CARLA with a display:
+# sudo docker run --privileged --gpus all --net=host -e DISPLAY=$DISPLAY carlasim/carla:0.9.12 /bin/bash ./CarlaUE4.sh
+
+# To run CARLA in off-screen mode:
+# sudo docker run --privileged --gpus all --net=host -v /tmp/.X11-unix:/tmp/.X11-unix:rw carlasim/carla:0.9.12 /bin/bash ./CarlaUE4.sh -RenderOffScreen
+
+
+services:
+  main:
+    container_name: "carla_simulator_container"
+    image: 'carla_simulator_image'
+    # restart: unless-stopped
+    build: .
+    user: "${UID}:${GID}"
+    shm_size: 16gb
+    network_mode: "host"
+    environment:
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /etc/passwd:/etc/passwd #just to get the user name by using getpwuid()
+      - type: bind
+        source: ./workspace
+        target: /workspace
+    deploy:
+    # For more information: https://docs.docker.com/compose/gpu-support/
+      resources:
+        limits:
+          cpus: ${CPU}
+          memory: ${MEMORY}
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+    privileged: true
+    # command: tail -F anything
+    command: /bin/bash ./CarlaUE4.sh
